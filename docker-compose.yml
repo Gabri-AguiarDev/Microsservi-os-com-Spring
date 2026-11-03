@@ -1,0 +1,39 @@
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim-faststart
+    container_name: ecoenergia-oracle
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:-Oracle123}
+      APP_USER: ${DB_USER:-ecoenergia}
+      APP_USER_PASSWORD: ${DB_PASSWORD:-Eco12345}
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 40s
+
+  api:
+    build: .
+    container_name: ecoenergia-api
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: ${DB_USER:-ecoenergia}
+      DB_PASSWORD: ${DB_PASSWORD:-Eco12345}
+      JWT_SECRET: ${JWT_SECRET:-ecoenergia-chave-secreta-para-jwt-com-32-chars-ou-mais}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-120}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ecoenergia.com}
+      ADMIN_SENHA: ${ADMIN_SENHA:-Admin@12345}
+    ports:
+      - "8080:8080"
+    restart: on-failure
+
+volumes:
+  oracle-data:
